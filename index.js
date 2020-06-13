@@ -10,6 +10,15 @@ app.use(bodyParser.json());
 
 const rooms = [];
 
+app.get("/", function (req, res) {
+  res.send(`availabele end points : \n
+ [POST] /addRoom => req should be in the format {number:str,seats:int,rate:int, options:[str]} \n
+ [POST] /bookRoom => req should be in the format {roomNo :str,custName:str, date:mn/day/yr,hrTimeStart:int(24hrformat eg. 6),totalHrs:int} \n
+ [GET] /getBookings \n
+  [GET]/adminDetails 
+   `);
+});
+
 app.post("/addRoom", function (req, res) {
   if (
     !req.body["number"] ||
@@ -50,7 +59,7 @@ function addRoom(number, seats, rate, options) {
   return true;
 }
 
-app.post("/bookRoom", async function (req, res) {
+app.post("/bookRoom", function (req, res) {
   let date = new Date(req.body["date"]);
 
   if (
@@ -113,7 +122,7 @@ function bookRoom(roomNo, custName, date, timeStart, hrs) {
   } else return false;
 }
 
-app.get("/getBookings", async function (req, res) {
+app.get("/getBookings", function (req, res) {
   let result = rooms.map((room) => {
     let bookings = room["bookings"].map((booking) => {
       return {
@@ -128,7 +137,7 @@ app.get("/getBookings", async function (req, res) {
   res.send(result);
 });
 
-app.get("/adminDetails", async function (req, res) {
+app.get("/adminDetails", function (req, res) {
   res.send(rooms);
 });
 app.listen(port, () => {
