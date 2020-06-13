@@ -97,12 +97,7 @@ function bookRoom(roomNo, custName, date, timeStart, hrs) {
   });
   if (canBook) {
     rooms[roomIndx]["bookings"].forEach((booking) => {
-      if (
-        !(
-          (booking["startTime"] > startTime && booking["endTime"] > endTime) ||
-          (booking["startTime"] < startTime && booking["endTime"] < endTime)
-        )
-      ) {
+      if (!(booking["startTime"] > endTime || booking["endTime"] < startTime)) {
         canBook = false;
       }
     });
