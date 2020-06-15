@@ -28,9 +28,10 @@ app.post("/addRoom", function (req, res) {
     !isNumber(req.body["rate"]) ||
     !req.body["options"]
   ) {
-    res.send(
-      "req should be in the format {number:str,seats:int,rate:int, options:[str]}"
-    );
+    res.json({
+      message:
+        "req should be in the format {number:str,seats:int,rate:int, options:[str]}",
+    });
     return;
   }
   let added = addRoom(
@@ -40,8 +41,8 @@ app.post("/addRoom", function (req, res) {
     req.body["options"]
   );
   if (!added) {
-    res.send("room already exists");
-  } else res.send(`room ${req.body["number"]} added`);
+    res.json({ message: "room already exists" });
+  } else res.json({ message: `room ${req.body["number"]} added` });
 });
 
 function addRoom(number, seats, rate, options) {
@@ -71,9 +72,10 @@ app.post("/bookRoom", function (req, res) {
     !isNumber(req.body["hrTimeStart"]) ||
     !isNumber(req.body["totalHrs"])
   ) {
-    res.send(
-      "req should be in the format {roomNo :str,custName:str, date:mn/day/yr,hrTimeStart:int(24hrformat eg. 6),totalHrs:int}"
-    );
+    res.json({
+      message:
+        "req should be in the format {roomNo :str,custName:str, date:mn/day/yr,hrTimeStart:int(24hrformat eg. 6),totalHrs:int}",
+    });
     return;
   }
   let result = bookRoom(
@@ -83,9 +85,12 @@ app.post("/bookRoom", function (req, res) {
     req.body["hrTimeStart"],
     req.body["totalHrs"]
   );
-  if (!result) res.send("booking failed bad request or booking not available");
+  if (!result)
+    res.json({
+      message: "booking failed bad request or booking not available",
+    });
   else {
-    res.send("room booked!");
+    res.json({ message: "room booked!" });
   }
 });
 
@@ -131,11 +136,11 @@ app.get("/getBookings", function (req, res) {
     });
     return { Room: room["number"], bookings };
   });
-  res.send(result);
+  res.json({ message: result });
 });
 
 app.get("/adminDetails", function (req, res) {
-  res.send(rooms);
+  res.json({ message: rooms });
 });
 app.listen(port, () => {
   console.log("app listing in port " + port);
