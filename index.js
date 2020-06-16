@@ -169,6 +169,9 @@ app.post("/createStudent", function (req, res) {
   res.json({ message: "student added" });
 
   client.connect((err) => {
+    if (err) {
+      res.status(500).json({ message: "filed to connect db" });
+    }
     const collection = client.db("VarDB").collection("variables");
     collection.updateOne(
       { _id: "5ee8c7061f687a4ca447a450" },
