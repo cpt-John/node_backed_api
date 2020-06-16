@@ -13,6 +13,7 @@ app.use(bodyParser.json());
 //mongodb
 const mongodb = require("mongodb");
 const { json } = require("body-parser");
+const { strict } = require("assert");
 const uri =
   "mongodb+srv://johnjohn:johnjohn@cluster0-lyx1k.mongodb.net/VarDB?retryWrites=true&w=majority";
 const mongoClient = mongodb.MongoClient;
@@ -306,6 +307,7 @@ app.post("/assignStudent", function (req, res) {
       throw "failed!";
     }
     const collection = client.db("VarDB").collection("variables");
+    let index = 0;
     collection.findOne(
       {
         _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450"),
@@ -315,28 +317,27 @@ app.post("/assignStudent", function (req, res) {
           res.status(500).json({ message: "filed to add" });
           throw "failed!";
         } else {
-          result["students"]["assigned"].forEach((student, index) => {
+          result["students"]["assigned"].forEach((student, i) => {
             if (student["name"] == req.body["student"]) {
-              collection.updateOne(
-                { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
-                {
-                  $set: {
-                    "students.assigned": {
-                      index: { mentor: req.body["mentorName"] },
-                    },
-                  },
-                },
-                function (err, result) {
-                  if (err) {
-                    res.status(500).json({ message: "filed to add" });
-                    throw "failed!";
-                  } else {
-                    res.json({ message: "student assigned" });
-                  }
-                }
-              );
+              index = i;
             }
           });
+        }
+      }
+    );
+    collection.updateOne(
+      { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
+      {
+        $set: {
+          ["students.assigned." + index + ".mentor"]: req.body["mentorName"],
+        },
+      },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+          throw "failed!";
+        } else {
+          res.json({ message: "student assigned" });
         }
       }
     );
