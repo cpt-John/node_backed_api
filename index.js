@@ -159,7 +159,7 @@ app.post("/createStudent", function (req, res) {
     });
     return;
   }
-  students.assigned.push({ ...req.body, mentor: "" });
+  students.unassigned.push({ ...req.body, mentor: "" });
   res.json({ message: "student added" });
 });
 
