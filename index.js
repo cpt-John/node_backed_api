@@ -175,7 +175,7 @@ app.post("/createStudent", function (req, res) {
     const collection = client.db("VarDB").collection("variables");
     collection.updateOne(
       { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
-      { $push: { mentors: "someting" } },
+      { $push: { students: { unassigned: "someting" } } },
       function (err, result) {
         if (err) {
           res.status(500).json({ message: "filed to add" });
