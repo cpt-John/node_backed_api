@@ -15,7 +15,7 @@ const mongodb = require("mongodb");
 const { json } = require("body-parser");
 const uri =
   "mongodb+srv://johnjohn:johnjohn@cluster0-lyx1k.mongodb.net/VarDB?retryWrites=true&w=majority";
-const client = new mongodb.MongoClient(uri, { useNewUrlParser: true });
+const mongoClient = mongodb.MongoClient;
 
 // room booking api
 
@@ -166,7 +166,7 @@ app.post("/createStudent", function (req, res) {
     });
     return;
   }
-  client.connect((err) => {
+  mongoClient.connect(uri, (err, client) => {
     if (err) {
       res.status(500).json({ message: "filed to connect db" });
     }
@@ -194,7 +194,7 @@ app.post("/createMentor", function (req, res) {
     return;
   }
 
-  client.connect((err) => {
+  mongoClient.connect(uri, (err, client) => {
     if (err) {
       res.status(500).json({ message: "filed to connect db" });
     }
@@ -221,7 +221,7 @@ app.post("/assignStudents", function (req, res) {
     });
     return;
   }
-  client.connect((err) => {
+  mongoClient.connect(uri, (err, client) => {
     if (err) {
       res.status(500).json({ message: "filed to connect db" });
       throw "failed!";
@@ -260,7 +260,7 @@ function assignStudents(mentorName, students_, unassigned, res) {
       newAssigned.push(s);
     }
   });
-  client.connect((err) => {
+  mongoClient.connect(uri, (err, client) => {
     if (err) {
       res.status(500).json({ message: "filed to connect db" });
       throw "failed!";
@@ -300,7 +300,7 @@ app.post("/assignStudent", function (req, res) {
     });
     return;
   }
-  client.connect((err) => {
+  mongoClient.connect(uri, (err, client) => {
     if (err) {
       res.status(500).json({ message: "filed to connect db" });
       throw "failed!";
@@ -345,7 +345,7 @@ app.post("/assignStudent", function (req, res) {
 });
 
 app.get("/students", function (req, res) {
-  client.connect((err) => {
+  mongoClient.connect(uri, (err, client) => {
     if (err) {
       res.status(500).json({ message: "filed to connect db" });
       throw "failed!";
@@ -368,7 +368,7 @@ app.get("/students", function (req, res) {
   });
 });
 app.get("/mentors", function (req, res) {
-  client.connect((err) => {
+  mongoClient.connect(uri, (err, client) => {
     if (err) {
       res.status(500).json({ message: "filed to connect db" });
       throw "failed!";
