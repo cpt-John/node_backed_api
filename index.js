@@ -170,12 +170,15 @@ app.post("/createStudent", function (req, res) {
 
   client.connect((err) => {
     const collection = client.db("VarDB").collection("variables");
-    collection.updateOne({ a: 2 }, { $set: { b: 1 } }, function (err, result) {
-      assert.equal(err, null);
-      assert.equal(1, result.result.n);
-      console.log("Updated the document with the field a equal to 2");
-      callback(result);
-    });
+    collection.updateOne(
+      { _id: "5ee8c7061f687a4ca447a450" },
+      { $push: { b: 1 } },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+        }
+      }
+    );
     client.close();
   });
 });
