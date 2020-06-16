@@ -357,7 +357,7 @@ app.get("/students", function (req, res) {
       },
       function (err, result) {
         if (err) {
-          res.status(500).json({ message: "filed to add" });
+          res.status(500).json({ message: "filed to retreive students" });
           throw "failed!";
         } else {
           res.json(result["students"]);
@@ -380,7 +380,7 @@ app.get("/mentors", function (req, res) {
       },
       function (err, result) {
         if (err) {
-          res.status(500).json({ message: "filed to add" });
+          res.status(500).json({ message: "filed to retreive mentors" });
           throw "failed!";
         } else {
           res.json(result["mentors"]);
