@@ -12,6 +12,7 @@ app.use(bodyParser.json());
 
 //mongodb
 const mongodb = require("mongodb");
+const { json } = require("body-parser");
 const uri =
   "mongodb+srv://johnjohn:johnjohn@cluster0-lyx1k.mongodb.net/VarDB?retryWrites=true&w=majority";
 const client = new mongodb.MongoClient(uri, { useNewUrlParser: true });
@@ -165,9 +166,6 @@ app.post("/createStudent", function (req, res) {
     });
     return;
   }
-  students.unassigned.push({ ...req.body, mentor: "" });
-  res.json({ message: "student added" });
-
   client.connect((err) => {
     if (err) {
       res.status(500).json({ message: "filed to connect db" });
@@ -175,10 +173,12 @@ app.post("/createStudent", function (req, res) {
     const collection = client.db("VarDB").collection("variables");
     collection.updateOne(
       { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
-      { $push: { students: { unassigned: "someting" } } },
+      { $push: { "students.unassigned": { ...req.body, mentor: "" } } },
       function (err, result) {
         if (err) {
           res.status(500).json({ message: "filed to add" });
+        } else {
+          res.json({ message: "student added" });
         }
       }
     );
@@ -193,8 +193,25 @@ app.post("/createMentor", function (req, res) {
     });
     return;
   }
-  mentors.push(req.body);
-  res.json({ message: "mentor added" });
+
+  client.connect((err) => {
+    if (err) {
+      res.status(500).json({ message: "filed to connect db" });
+    }
+    const collection = client.db("VarDB").collection("variables");
+    collection.updateOne(
+      { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
+      { $push: { mentors: req.body } },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+        } else {
+          res.json({ message: "mentor added" });
+        }
+      }
+    );
+    client.close();
+  });
 });
 
 app.post("/assignStudents", function (req, res) {
@@ -204,21 +221,76 @@ app.post("/assignStudents", function (req, res) {
     });
     return;
   }
-  assignStudents(req.body["mentorName"], req.body["students"]);
-  res.json({ message: "students assigned" });
+  client.connect((err) => {
+    if (err) {
+      res.status(500).json({ message: "filed to connect db" });
+      throw "failed!";
+    }
+    const collection = client.db("VarDB").collection("variables");
+    collection.findOne(
+      {
+        _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450"),
+      },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+          throw "failed!";
+        } else {
+          assignStudents(
+            req.body["mentorName"],
+            req.body["students"],
+            result["students"]["unassigned"],
+            res
+          );
+        }
+      }
+    );
+    client.close();
+  });
 });
 
-function assignStudents(mentorName, students_) {
+function assignStudents(mentorName, students_, unassigned, res) {
   let newUnassigned = [];
-  students.unassigned.forEach((s) => {
+  let newAssigned = [];
+  unassigned.forEach((s) => {
     if (!students_.includes(s["name"])) {
       newUnassigned.push(s);
     } else {
       s["mentor"] = mentorName;
-      students.assigned.push(s);
+      newAssigned.push(s);
     }
   });
-  students.unassigned = [...newUnassigned];
+  client.connect((err) => {
+    if (err) {
+      res.status(500).json({ message: "filed to connect db" });
+      throw "failed!";
+    }
+    const collection = client.db("VarDB").collection("variables");
+    collection.updateOne(
+      { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
+      { $push: { "students.assigned": { $each: newAssigned } } },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+          throw "failed!";
+        } else {
+        }
+      }
+    );
+    collection.updateOne(
+      { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
+      { $set: { "students.unassigned": newUnassigned } },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+          throw "failed!";
+        } else {
+          res.json({ message: "students assigned" });
+        }
+      }
+    );
+    client.close();
+  });
 }
 
 app.post("/assignStudent", function (req, res) {
@@ -228,17 +300,93 @@ app.post("/assignStudent", function (req, res) {
     });
     return;
   }
-  students.assigned.forEach((student) => {
-    if (student["name"] == req.body["student"]) {
-      student["mentor"] = req.body["mentorName"];
+  client.connect((err) => {
+    if (err) {
+      res.status(500).json({ message: "filed to connect db" });
+      throw "failed!";
     }
+    const collection = client.db("VarDB").collection("variables");
+    collection.findOne(
+      {
+        _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450"),
+      },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+          throw "failed!";
+        } else {
+          result["students"]["assigned"].forEach((student, index) => {
+            if (student["name"] == req.body["student"]) {
+              collection.updateOne(
+                { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
+                {
+                  $set: {
+                    "students.assigned": {
+                      index: { mentor: req.body["mentorName"] },
+                    },
+                  },
+                },
+                function (err, result) {
+                  if (err) {
+                    res.status(500).json({ message: "filed to add" });
+                    throw "failed!";
+                  } else {
+                    res.json({ message: "student assigned" });
+                  }
+                }
+              );
+            }
+          });
+        }
+      }
+    );
+    client.close();
   });
-  res.json({ message: "student assigned" });
 });
 
 app.get("/students", function (req, res) {
-  res.json(students);
+  client.connect((err) => {
+    if (err) {
+      res.status(500).json({ message: "filed to connect db" });
+      throw "failed!";
+    }
+    const collection = client.db("VarDB").collection("variables");
+    collection.findOne(
+      {
+        _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450"),
+      },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+          throw "failed!";
+        } else {
+          res.json(result["students"]);
+        }
+      }
+    );
+    client.close();
+  });
 });
 app.get("/mentors", function (req, res) {
-  res.json(mentors);
+  client.connect((err) => {
+    if (err) {
+      res.status(500).json({ message: "filed to connect db" });
+      throw "failed!";
+    }
+    const collection = client.db("VarDB").collection("variables");
+    collection.findOne(
+      {
+        _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450"),
+      },
+      function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to add" });
+          throw "failed!";
+        } else {
+          res.json(result["mentors"]);
+        }
+      }
+    );
+    client.close();
+  });
 });
