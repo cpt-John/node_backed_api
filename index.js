@@ -10,6 +10,8 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
+// room booking api
+
 const rooms = [];
 
 app.get("/", function (req, res) {
@@ -144,4 +146,72 @@ app.get("/adminDetails", function (req, res) {
 });
 app.listen(port, () => {
   console.log("app listing in port " + port);
+});
+
+// student mentor api
+let students = { assigned: [], unassigned: [] };
+let mentors = [];
+
+app.post("/createStudent", function (req, res) {
+  if (!req.body["name"]) {
+    res.status(400).json({
+      message: "req should be in the format {name:str,otherDetails:[str]}",
+    });
+    return;
+  }
+  students.assigned.push({ ...req.body, mentor: "" });
+  res.json({ message: "student added" });
+});
+
+app.post("/createMentor", function (req, res) {
+  if (!req.body["name"]) {
+    res.status(400).json({
+      message: "req should be in the format {name:str,otherDetails:[str]}",
+    });
+    return;
+  }
+  mentors.push(req.body);
+  res.json({ message: "mentor added" });
+});
+
+app.post("/assignStudents", function (req, res) {
+  if (!req.body["mentorName"] || !req.body["students"]) {
+    res.status(400).json({
+      message: "req should be in the format {mentorName:str,students:[str]}",
+    });
+    return;
+  }
+  assignStudents(req.body["mentorName"], req.body["students"]);
+  res.json({ message: "students assigned" });
+});
+
+function assignStudents(mentorName, students_) {
+  let newUnassigned = [];
+  students.unassigned.forEach((s) => {
+    if (!students_.includes(s["name"])) {
+      newUnassigned.push(s);
+    } else {
+      s["mentor"] = mentorName;
+      students.assigned.push(s);
+    }
+  });
+  students.unassigned = [...newUnassigned];
+}
+
+app.post("/assignStudent", function (req, res) {
+  if (!req.body["mentorName"] || !req.body["student"]) {
+    res.status(400).json({
+      message: "req should be in the format {mentorName:str,student:[str]}",
+    });
+    return;
+  }
+  assignStudents(req.body["mentorName"], [req.body["student"]]);
+  res.json({ message: "student assigned" });
+});
+
+app.get("/students", function (req, res) {
+  res.json({ message: students });
+});
+app.get("/mentors", function (req, res) {
+  res.json({ message: mentors });
 });
