@@ -11,10 +11,10 @@ app.use(cors());
 app.use(bodyParser.json());
 
 //mongodb
-const MongoClient = require("mongodb").MongoClient;
+const mongodb = require("mongodb");
 const uri =
   "mongodb+srv://johnjohn:johnjohn@cluster0-lyx1k.mongodb.net/VarDB?retryWrites=true&w=majority";
-const client = new MongoClient(uri, { useNewUrlParser: true });
+const client = new mongodb.MongoClient(uri, { useNewUrlParser: true });
 
 // room booking api
 
@@ -174,7 +174,7 @@ app.post("/createStudent", function (req, res) {
     }
     const collection = client.db("VarDB").collection("variables");
     collection.updateOne(
-      { _id: "5ee8c7061f687a4ca447a450" },
+      { _id: mongodb.ObjectID("5ee8c7061f687a4ca447a450") },
       { $push: { b: 1 } },
       function (err, result) {
         if (err) {
