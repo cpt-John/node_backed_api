@@ -205,7 +205,11 @@ app.post("/assignStudent", function (req, res) {
     });
     return;
   }
-  assignStudents(req.body["mentorName"], [req.body["student"]]);
+  students.assigned.forEach((student) => {
+    if (student["name"] == req.body["student"]) {
+      student["mentor"] = req.body["mentorName"];
+    }
+  });
   res.json({ message: "student assigned" });
 });
 
