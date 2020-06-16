@@ -210,8 +210,8 @@ app.post("/assignStudent", function (req, res) {
 });
 
 app.get("/students", function (req, res) {
-  res.json({ message: students });
+  res.json(students);
 });
 app.get("/mentors", function (req, res) {
-  res.json({ message: mentors });
+  res.json(mentors);
 });
