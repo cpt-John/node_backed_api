@@ -10,6 +10,12 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
+//mongodb
+const MongoClient = require("mongodb").MongoClient;
+const uri =
+  "mongodb+srv://johnjohn:johnjohn@cluster0-lyx1k.mongodb.net/VarDB?retryWrites=true&w=majority";
+const client = new MongoClient(uri, { useNewUrlParser: true });
+
 // room booking api
 
 const rooms = [];
@@ -161,6 +167,17 @@ app.post("/createStudent", function (req, res) {
   }
   students.unassigned.push({ ...req.body, mentor: "" });
   res.json({ message: "student added" });
+
+  client.connect((err) => {
+    const collection = client.db("VarDB").collection("variables");
+    collection.updateOne({ a: 2 }, { $set: { b: 1 } }, function (err, result) {
+      assert.equal(err, null);
+      assert.equal(1, result.result.n);
+      console.log("Updated the document with the field a equal to 2");
+      callback(result);
+    });
+    client.close();
+  });
 });
 
 app.post("/createMentor", function (req, res) {
