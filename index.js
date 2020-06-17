@@ -3,19 +3,25 @@ const cors = require("cors");
 const app = express();
 const bodyParser = require("body-parser");
 const { isNumber } = require("util");
-const { exists } = require("fs");
+const dotenv = require("dotenv");
+const bcrypt = require("bcrypt");
+const cryptoRandomString = require("crypto-random-string");
+const nodemailer = require("nodemailer");
+const mongodb = require("mongodb");
 
 const port = process.env.PORT || 3000;
+dotenv.config();
 
 app.use(cors());
 app.use(bodyParser.json());
 
+app.listen(port, () => {
+  console.log("app listing in port " + port);
+});
+
 //mongodb
-const mongodb = require("mongodb");
-const { json } = require("body-parser");
-const { strict } = require("assert");
-const uri =
-  "mongodb+srv://johnjohn:johnjohn@cluster0-lyx1k.mongodb.net/VarDB?retryWrites=true&w=majority";
+
+const uri = `mongodb+srv://${process.env.D_EMAIL}:${process.env.D_PASSWORD}@cluster0-lyx1k.mongodb.net/VarDB?retryWrites=true&w=majority`;
 const mongoClient = mongodb.MongoClient;
 
 // room booking api
@@ -151,9 +157,6 @@ app.get("/getBookings", function (req, res) {
 
 app.get("/adminDetails", function (req, res) {
   res.json({ message: rooms });
-});
-app.listen(port, () => {
-  console.log("app listing in port " + port);
 });
 
 // student mentor api
@@ -390,4 +393,329 @@ app.get("/mentors", function (req, res) {
     );
     client.close();
   });
+});
+
+//login and register api
+//mailing
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.C_EMAIL,
+    pass: process.env.C_PASSWORD,
+  },
+});
+
+async function verificationMail(toMail, sessionLink) {
+  link = "http://localhost:4200/#/resetpass/";
+  let mailOptions = {
+    from: process.env.EMAIL,
+    to: toMail,
+    subject: "verification link",
+
+    html: `<p>follow this link to reset password:</p></br>
+    <a href=${link + sessionLink}>Click HERE</a>`,
+  };
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log("error is " + error);
+        resolve({ status: false, message: error });
+      } else {
+        console.log("Email sent: " + info.response);
+        resolve({ status: true });
+      }
+    });
+  });
+}
+
+app.post("/login", function (req, res) {
+  if (!req.body["email"] || !req.body["password"]) {
+    res.status(400).json({
+      message: "email or password missing",
+    });
+    return;
+  }
+  mongoClient.connect(
+    uri,
+    {
+      useUnifiedTopology: true,
+    },
+    (err, client) => {
+      if (err) {
+        res.status(500).json({ message: "filed to connect db" });
+        client.close();
+        return;
+      }
+      const collection = client.db("VarDB").collection("users");
+      collection.findOne({ email: req.body["email"] }, async function (
+        err,
+        result
+      ) {
+        if (err) {
+          res.status(500).json({ message: "filed to retreive" });
+        } else {
+          if (!result) res.status(401).json({ message: "email dosent exist" });
+          else {
+            await bcrypt.compare(
+              req.body["password"],
+              result["password"],
+              function (err, result_) {
+                if (err)
+                  res.status(500).json({
+                    message: "virification failed!",
+                  });
+                else if (result_)
+                  res.status(200).json({
+                    message: "logged in!",
+                  });
+                else
+                  res.status(401).json({
+                    message: "password wrong!",
+                  });
+              }
+            );
+          }
+        }
+        client.close();
+      });
+    }
+  );
+});
+
+app.post("/register", async function (req, res) {
+  if (!req.body["email"] || !req.body["password"] || !req.body["name"]) {
+    res.status(400).json({
+      message: "email or password or name missing",
+    });
+    return;
+  }
+  let continue_ = true;
+  await bcrypt.hash(req.body["password"], 10, function (err, hash) {
+    if (err) {
+      res.status(500).json({ message: "filed to hash password" });
+      continue_ = false;
+    } else {
+      console.log(hash);
+      req.body["password"] = hash;
+    }
+  });
+  if (!continue_) return;
+  mongoClient.connect(
+    uri,
+    {
+      useUnifiedTopology: true,
+    },
+    (err, client) => {
+      if (err) {
+        res.status(500).json({ message: "filed to connect db" });
+        client.close();
+        return;
+      }
+      const collection = client.db("VarDB").collection("users");
+
+      //verify existing
+
+      collection.findOne({ email: req.body["email"] }, function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to retreive" });
+        } else {
+          if (result) {
+            res.status(400).json({ message: "email already exists" });
+            client.close();
+          } else {
+            //insert
+            collection.insertOne(req.body, function (err, result) {
+              if (err) {
+                res.status(500).json({ message: "filed to register" });
+              } else {
+                res.status(200).json({
+                  message: "Registered!",
+                });
+              }
+              client.close();
+            });
+          }
+        }
+      });
+    }
+  );
+});
+
+app.post("/verificationMail", function (req, res) {
+  if (!req.body["email"]) {
+    res.status(400).json({
+      message: "email  missing",
+    });
+    return;
+  }
+  mongoClient.connect(
+    uri,
+    {
+      useUnifiedTopology: true,
+    },
+    (err, client) => {
+      if (err) {
+        res.status(500).json({ message: "filed to connect db" });
+        client.close();
+        return;
+      }
+      const collection = client.db("VarDB").collection("users");
+      collection.findOne({ email: req.body["email"] }, function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to retreive" });
+        } else {
+          if (!result) res.status(401).json({ message: "email dosent exist" });
+          else {
+            let key = cryptoRandomString({ length: 10, type: "url-safe" });
+            let sessionLink = `${result["email"]}/${key}`;
+            collection.updateOne(
+              { email: result["email"] },
+              { $set: { sessionKey: key } },
+              async function (err, result) {
+                if (err) {
+                  res.status(500).json({ message: "filed to reset" });
+                } else {
+                  let mailStatus = await verificationMail(
+                    req.body["email"],
+                    sessionLink
+                  );
+                  if (mailStatus["status"]) {
+                    res.status(200).json({
+                      message: "verification send to: " + req.body["email"],
+                    });
+                  } else
+                    res.status(500).json({
+                      message: "mailing failed",
+                    });
+                }
+                client.close();
+              }
+            );
+          }
+        }
+      });
+    }
+  );
+});
+
+app.post("/resetPassSession", function (req, res) {
+  if (!req.body["email"] || !req.body["sessionKey"]) {
+    res.status(400).json({
+      message: "error in link!",
+    });
+    return;
+  }
+  mongoClient.connect(
+    uri,
+    {
+      useUnifiedTopology: true,
+    },
+    (err, client) => {
+      if (err) {
+        res.status(500).json({ message: "filed to connect db" });
+        client.close();
+        return;
+      }
+      const collection = client.db("VarDB").collection("users");
+      collection.findOne({ email: req.body["email"] }, function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to retreive" });
+        } else {
+          if (!result) res.status(401).json({ message: "email dosent exist" });
+          else if (
+            result["sessionKey"] == req.body["sessionKey"] &&
+            result["sessionKey"]
+          )
+            res.status(200).json({
+              message: "can reset password!",
+            });
+          else
+            res.status(401).json({
+              message: "error in session!",
+            });
+        }
+        client.close();
+      });
+    }
+  );
+});
+
+app.post("/resetPassword", async function (req, res) {
+  if (
+    !req.body["email"] ||
+    !req.body["newPassword"] ||
+    !req.body["sessionKey"]
+  ) {
+    res.status(400).json({
+      message: "email or password or key missing",
+    });
+    return;
+  }
+  let continue_ = true;
+  await bcrypt.hash(req.body["newPassword"], 10, function (err, hash) {
+    if (err) {
+      res.status(500).json({ message: "filed to hash password" });
+      continue_ = false;
+    } else {
+      req.body["newPassword"] = hash;
+    }
+  });
+  if (!continue_) {
+    return;
+  }
+  mongoClient.connect(
+    uri,
+    {
+      useUnifiedTopology: true,
+    },
+    (err, client) => {
+      if (err) {
+        res.status(500).json({ message: "filed to connect db" });
+        client.close();
+        return;
+      }
+      const collection = client.db("VarDB").collection("users");
+
+      //verify existing
+
+      collection.findOne({ email: req.body["email"] }, function (err, result) {
+        if (err) {
+          res.status(500).json({ message: "filed to retreive" });
+        } else {
+          if (!result) {
+            res.status(400).json({ message: "email does not exist" });
+            client.close();
+          } else if (
+            result["sessionKey"] != req.body["sessionKey"] ||
+            !result["sessionKey"]
+          ) {
+            res.status(400).json({ message: "key is wrong" });
+            client.close();
+          } else {
+            //insert
+
+            collection.updateMany(
+              { email: result["email"] },
+              {
+                $set: { password: req.body.newPassword },
+                $unset: { sessionKey: "" },
+              },
+              function (err, result) {
+                if (err) {
+                  res.status(500).json({ message: "filed to reset" });
+                } else {
+                  res.status(200).json({
+                    message: "password updated!",
+                  });
+                }
+                client.close();
+              }
+            );
+          }
+        }
+      });
+    }
+  );
 });
