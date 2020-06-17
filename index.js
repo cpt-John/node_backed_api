@@ -408,7 +408,7 @@ const transporter = nodemailer.createTransport({
 });
 
 async function verificationMail(toMail, sessionLink) {
-  link = "http://localhost:4200/#/resetpass/";
+  link = "https://vibrant-lamport-8a95f3.netlify.app/#/resetpass/";
   let mailOptions = {
     from: process.env.EMAIL,
     to: toMail,
