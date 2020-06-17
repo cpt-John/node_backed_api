@@ -397,7 +397,6 @@ app.get("/mentors", function (req, res) {
 
 //login and register api
 //mailing
-const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
